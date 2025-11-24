@@ -8,7 +8,7 @@ library(restoreutils)
 base_output_dir <- "data/derived/"
 
 # Samples version
-samples_version <- "samples-simoes-original"
+samples_version <- "samples-simoes-natveg"
 
 
 #
@@ -20,7 +20,7 @@ samples_dir <- restoreutils::create_data_dir(base_output_dir, "timeseries")
 #
 # 2. Get existing samples
 #
-samples_ts <- fs::dir_ls(samples_dir, glob = glue::glue("*-complete.rds"), invert = TRUE)
+samples_ts <- fs::dir_ls(samples_dir, regexp = glue::glue("{samples_version}"))
 
 
 #
