@@ -10,10 +10,10 @@ base_cubes_dir <- restoreutils::project_cubes_dir()
 base_classifications_dir <- restoreutils::project_classifications_dir()
 
 # Model
-model_version <- "samples-simoes-original"
+model_version <- "samples-simoes-natveg"
 
 # Classification - version
-classification_version <- "samples-simoes-original"
+classification_version <- "samples-simoes-natveg"
 
 # Classification - years
 regularization_years <- 2018
