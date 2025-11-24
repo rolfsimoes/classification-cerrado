@@ -20,7 +20,7 @@ samples_dir <- restoreutils::create_data_dir(base_output_dir, "timeseries")
 #
 # 2. Get existing samples
 #
-samples_ts <- fs::dir_ls(samples_dir, regexp = glue::glue("{samples_version}"))
+samples_ts <- fs::dir_ls(samples_dir, glob = glue::glue("*{samples_version}-q*.rds"))
 
 
 #
