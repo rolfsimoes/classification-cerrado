@@ -10,13 +10,13 @@ region_id <- 1
 base_cubes_dir <- restoreutils::project_cubes_dir()
 
 # Samples
-samples_file <- "data/raw/timeseries/simoes_point_cer_2017-08-29_2018-08-29_samples_original.rds"
+samples_file <- "data/raw/timeseries/simoes_point_cer_2017-08-29_2018-08-29_samples_natveg.rds"
 
 # Output dir
 base_output_dir <- "data/derived/"
 
 # Samples version
-samples_version <- glue::glue("samples-simoes-original-q{region_id}")
+samples_version <- glue::glue("samples-simoes-natveg-q{region_id}")
 
 # Reference year
 samples_reference_year <- 2018
