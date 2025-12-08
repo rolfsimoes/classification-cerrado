@@ -10,19 +10,19 @@ base_cubes_dir <- restoreutils::project_cubes_dir()
 base_classifications_dir <- restoreutils::project_classifications_dir()
 
 # Model
-model_version <- "samples-simoes-natveg"
+model_version <- "samples-cer-v3a"
 
 # Classification - version
-classification_version <- "samples-simoes-natveg"
+classification_version <- "samples-cer-v3a"
 
 # Classification - years
 regularization_years <- 2018
 
 # Hardware - Multicores
-multicores <- 50
+multicores <- 30
 
 # Hardware - Memory size
-memsize <- 80
+memsize <- 150
 
 
 #
