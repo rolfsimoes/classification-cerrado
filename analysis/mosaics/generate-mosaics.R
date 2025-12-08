@@ -21,7 +21,7 @@ bands <- c("SWIR16", "NIR08", "BLUE")
 regularization_years <- 2018
 
 # Hardware - Multicores
-multicores <- 120
+multicores <- 40
 
 
 #
