@@ -19,10 +19,10 @@ classification_version <- "samples-simoes-natveg"
 regularization_years <- 2018
 
 # Hardware - Multicores
-multicores <- 100
+multicores <- 50
 
 # Hardware - Memory size
-memsize <- 300
+memsize <- 80
 
 
 #
