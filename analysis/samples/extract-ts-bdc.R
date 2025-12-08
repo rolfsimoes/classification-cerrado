@@ -4,19 +4,19 @@ library(restoreutils)
 #
 # General definitions
 #
-region_id <- 3
+region_id <- 1
 
 # Base datacube directories
 base_cubes_dir <- restoreutils::project_cubes_dir()
 
 # Samples
-samples_file <- "data/raw/timeseries/lulcbrasil_ts_cer_2018-01-01_2018-12-01_ts_v3a.rds"
+samples_file <- "data/raw/timeseries/lulcbrasil_ts_cer_2018-01-01_2018-12-01_ts_v3b.rds"
 
 # Output dir
 base_output_dir <- "data/derived/"
 
 # Samples version
-samples_version <- glue::glue("samples-cer-v3a-q{region_id}")
+samples_version <- glue::glue("samples-cer-v3b-q{region_id}")
 
 # Reference year
 samples_reference_year <- 2018
