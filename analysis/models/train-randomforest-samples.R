@@ -8,7 +8,7 @@ library(restoreutils)
 #
 
 # Samples
-samples_file <- "data/derived/timeseries/samples-simoes-natveg-complete.rds"
+samples_file <- "data/derived/timeseries/samples-cer-v3a-complete.rds"
 
 # Output dir
 base_output_dir <- "data/derived/"

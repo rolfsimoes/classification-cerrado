@@ -8,7 +8,7 @@ library(restoreutils)
 base_output_dir <- "data/derived/"
 
 # Samples version
-samples_version <- "samples-simoes-natveg"
+samples_version <- "samples-cer-v3a"
 
 
 #
