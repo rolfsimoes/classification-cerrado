@@ -14,7 +14,7 @@ samples_file <- "data/derived/timeseries/samples-cer-v3a-complete.rds"
 base_output_dir <- "data/derived/"
 
 # Model version
-model_version <- "samples-simoes-natveg"
+model_version <- "samples-cer-v3a"
 
 
 #
