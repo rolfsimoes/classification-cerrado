@@ -10,19 +10,19 @@ base_cubes_dir <- restoreutils::project_cubes_dir()
 base_classifications_dir <- restoreutils::project_classifications_dir()
 
 # Model
-model_version <- "samples-cer-v3a"
+model_version <- "samples-cer-v3b"
 
 # Classification - version
-classification_version <- "samples-cer-v3a"
+classification_version <- "samples-cer-v3b"
 
 # Classification - years
 regularization_years <- 2018
 
 # Hardware - Multicores
-multicores <- 30
+multicores <- 100
 
 # Hardware - Memory size
-memsize <- 150
+memsize <- 450
 
 
 #
