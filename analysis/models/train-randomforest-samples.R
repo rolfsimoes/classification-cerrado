@@ -8,13 +8,13 @@ library(restoreutils)
 #
 
 # Samples
-samples_file <- "data/derived/timeseries/samples-cer-v3b-complete.rds"
+samples_file <- "data/derived/timeseries/samples-cer-v4a-complete.rds"
 
 # Output dir
 base_output_dir <- "data/derived/"
 
 # Model version
-model_version <- "samples-cer-v3b"
+model_version <- "samples-cer-v4a"
 
 
 #
