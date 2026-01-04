@@ -4,3 +4,8 @@
 .Ruserdata
 .DS_Store
 .Renviron
+
+data/derived/classifications/
+data/derived/cubes-panel/
+data/derived/mosaics-mbtiles/
+data/derived/mosaics/
