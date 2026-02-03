@@ -18,7 +18,11 @@ mask_tiles <- c()
 mask_version <- "rules-v1"
 
 # Classification - version
-classification_version <- "samples-v2-noperene-eco4"
+classification_version <- "samples-cer-v4a-tempcnn-tuning-spacing-10-compactness-05-2018"
+
+# samples-cer-v4a-tempcnn-default-spacing-10-compactness-05-2018
+# samples-cer-v4a-tempcnn-default-spacing-20-compactness-03-2018
+# samples-cer-v4a-tempcnn-tuning-spacing-10-compactness-05-2018
 
 # Classification - years
 classification_year <- 2018
@@ -33,7 +37,7 @@ memsize <- 300
 # 1. Define output directory
 #
 output_dir <- restoreutils::create_data_dir(
-  base_masks_dir / mask_version, classification_year
+  base_masks_dir / mask_version / classification_version, classification_year
 )
 
 classification_dir <- (
@@ -57,20 +61,8 @@ eco_class <- load_cerrado_map(
   tiles      = "MOSAIC",
   multicores = multicores,
   memsize    = memsize,
-  version    = classification_version
+  version    = "v1"
 )
-
-# #
-# # 4. Clean data to reduce noise
-# #
-# eco_class <- sits_clean(
-#   cube         = eco_class,
-#   window_size  = 5,
-#   multicores   = multicores,
-#   memsize      = memsize,
-#   output_dir   = output_dir,
-#   version      = "step1"
-# )
 
 eco_mask <- restoreutils::reclassify_cer_rule0_natveg(
   cube         = eco_class,
