@@ -42,7 +42,8 @@ years <- c(2018, 2020, 2022, 2024)
 bands <- c("BLUE", "EVI", "GREEN", "MNDWI", "NBR", "NDVI", "NIR08", "RED", "SWIR16", "SWIR22")
 
 # Setup parallel cluster
-multicores <- 100
+# Cubes are on BeeGFS: with 100 workers, 88 of 101 R processes waited on I/O.
+multicores <- 16
 sits_parallel(workers = multicores, log = TRUE, output_dir = getwd())
 
 points <- read.csv(pasture_csv)
