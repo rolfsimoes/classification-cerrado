@@ -66,6 +66,8 @@ for (year in years) {
     collection = "LANDSAT-OLI-16D",
     tiles      = cerrado_tiles,
     data_dir   = file.path(cubes_dir, as.character(year - 1)),
+    # sits reads the file metadata with 2 workers unless told otherwise.
+    multicores = multicores,
     progress   = FALSE
   )
   cube_y2 <- sits_cube(
@@ -73,9 +75,11 @@ for (year in years) {
     collection = "LANDSAT-OLI-16D",
     tiles      = cerrado_tiles,
     data_dir   = file.path(cubes_dir, as.character(year)),
+    multicores = multicores,
     progress   = FALSE
   )
   cube_2y <- sits_merge(cube_y1, cube_y2)
+  message(format(Sys.time(), "%H:%M:%S"), " - ", year, ": cube loaded")
 
   # v14a series have 24 monthly steps, January y-1 to December y.
   timeline <- sits_timeline(cube_2y)
