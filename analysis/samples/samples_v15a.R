@@ -43,7 +43,8 @@ bands <- c("BLUE", "EVI", "GREEN", "MNDWI", "NBR", "NDVI", "NIR08", "RED", "SWIR
 
 # Setup parallel cluster
 # Cubes are on BeeGFS: with 100 workers, 88 of 101 R processes waited on I/O.
-multicores <- 16
+# V15A_MULTICORES overrides it; 16 left the disk with spare capacity.
+multicores <- as.integer(Sys.getenv("V15A_MULTICORES", "16"))
 sits_parallel(workers = multicores, log = TRUE, output_dir = getwd())
 
 points <- read.csv(pasture_csv)
@@ -59,7 +60,7 @@ for (year in years) {
     next
   }
 
-  message("- ", year, ": loading cube")
+  message(format(Sys.time(), "%H:%M:%S"), " - ", year, ": loading cube")
   cube_y1 <- sits_cube(
     source     = "BDC",
     collection = "LANDSAT-OLI-16D",
@@ -95,7 +96,7 @@ for (year in years) {
     )
     # Added after extraction, so the column is not lost inside sits_get_data.
     ts$stratum <- stratum
-    message("  ", stratum, ": ", nrow(s), " points, ", nrow(ts), " series")
+    message(format(Sys.time(), "%H:%M:%S"), "   ", stratum, ": ", nrow(s), " points, ", nrow(ts), " series")
     year_ts[[stratum]] <- ts
   }
   year_ts <- dplyr::bind_rows(year_ts)
