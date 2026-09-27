@@ -45,7 +45,10 @@ bands <- c("BLUE", "EVI", "GREEN", "MNDWI", "NBR", "NDVI", "NIR08", "RED", "SWIR
 # Cubes are on BeeGFS: with 100 workers, 88 of 101 R processes waited on I/O.
 # V15A_MULTICORES overrides it; 16 left the disk with spare capacity.
 multicores <- as.integer(Sys.getenv("V15A_MULTICORES", "16"))
-sits_parallel(workers = multicores, log = TRUE, output_dir = getwd())
+# sits writes a debug log per call; keep it on local disk, not on BeeGFS.
+log_dir <- Sys.getenv("V15A_LOG_DIR", "/tmp/sits_v15a")
+dir.create(log_dir, recursive = TRUE, showWarnings = FALSE)
+sits_parallel(workers = multicores, log = TRUE, output_dir = log_dir)
 
 points <- read.csv(pasture_csv)
 
