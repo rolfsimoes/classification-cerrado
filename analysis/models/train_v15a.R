@@ -33,54 +33,10 @@ log_msg <- function(...) {
 }
 
 # -----------------------------------------------------------------------------
-# Wait for the extraction script to finish writing the samples file.
-# This lets you launch training now; it will sit idle until
-# samples-cer-v15a.rds exists AND has stopped growing, then proceed.
+# Load samples
 # -----------------------------------------------------------------------------
-wait_for_file <- function(path,
-                          poll_seconds = 60,
-                          stable_checks = 3,
-                          timeout_hours = 24) {
-  path <- path.expand(path)
-  deadline <- Sys.time() + timeout_hours * 3600
-  last_size <- -1
-  stable <- 0L
-
-  log_msg("Waiting for samples file: ", path)
-  repeat {
-    if (file.exists(path)) {
-      sz <- file.info(path)$size
-      if (!is.na(sz) && sz > 0 && identical(sz, last_size)) {
-        stable <- stable + 1L
-        if (stable >= stable_checks) {
-          log_msg("Samples file present and stable (", sz, " bytes)")
-          return(invisible(TRUE))
-        }
-      } else {
-        stable <- 0L
-      }
-      last_size <- sz
-    }
-    if (Sys.time() > deadline) {
-      stop("Timed out waiting for ", path)
-    }
-    Sys.sleep(poll_seconds)
-  }
-}
-
-wait_for_file(samples_file)
-
-# -----------------------------------------------------------------------------
-# Load samples (retry once in case the read lands mid-write)
-# -----------------------------------------------------------------------------
-samples <- tryCatch(
-  readRDS(samples_file),
-  error = function(e) {
-    log_msg("First read failed (", conditionMessage(e), "); retrying in 30s")
-    Sys.sleep(30)
-    readRDS(samples_file)
-  }
-)
+stopifnot(file.exists(samples_file))
+samples <- readRDS(samples_file)
 log_msg("Loaded ", nrow(samples), " samples")
 
 # -----------------------------------------------------------------------------

@@ -102,12 +102,9 @@ tiles <- split(cerrado_tiles, ceiling(seq_along(cerrado_tiles) / chunk_size))
 # Load model
 #
 model_file <- file.path(models_dir, glue("model-{model_version}.rds"))
-while (TRUE) {
-  model <- tryCatch(suppressWarnings(readRDS(model_file)), error = function(e) NULL)
-  if (!is.null(model)) break
-  say("model not ready, waiting 60s: ", model_file)
-  Sys.sleep(60)
-}
+stopifnot(file.exists(model_file))
+model <- readRDS(model_file)
+say("model: ", model_file)
 
 #
 # Block and batch plan. Blocks are full-width stripes of the tile, as tall as
