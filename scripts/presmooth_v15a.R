@@ -12,6 +12,8 @@
 # Processes the eligible tiles once and exits.
 #
 # Usage: Rscript scripts/presmooth_v15a.R QML [MAX_TILES]
+# V15A_TILES (comma-separated) takes those tiles instead of the chunk rule,
+# for a manual run; the other checks still apply.
 # V15A_LOG, V15A_OUT and V15A_WORK override the paths, for tests only.
 suppressPackageStartupMessages(library(sits))
 
@@ -50,11 +52,21 @@ finished <- sub("^Tile '([0-9]+)' finished.*", "\\1", grep("^Tile '[0-9]+' finis
 tile_file <- function(tile, band) {
   file.path(output_dir, sprintf("LANDSAT_OLI_%s_2017-01-01_2018-12-01_%s_%s.tif", tile, band, version))
 }
-if (tail(chunk, 1) %in% finished) quit(save = "no")
+forced <- Sys.getenv("V15A_TILES")
+if (nzchar(forced)) {
+  candidates <- strsplit(forced, ",")[[1]]
+} else {
+  if (tail(chunk, 1) %in% finished) quit(save = "no")
+  candidates <- chunk
+}
+# Block files of a bayes tile mean the main run is smoothing it now.
+busy <- function(t) {
+  any(grepl(paste0("_", t, "_.*_bayes_.*block"), list.files(output_dir)))
+}
 todo <- Filter(function(t) {
-  t %in% finished &&
+  t %in% finished && !busy(t) &&
     file.exists(tile_file(t, "probs")) && !file.exists(tile_file(t, "class"))
-}, chunk)
+}, candidates)
 todo <- head(todo, max_tiles)
 if (length(todo) == 0) quit(save = "no")
 
