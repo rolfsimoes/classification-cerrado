@@ -53,8 +53,11 @@ start_year_offset <- 1L # 1L for a 2-year classification; 0L for 1 year
 #
 # Hardware
 #
-# Readers feed the GPU; a few are enough and leave memory for large blocks.
+# Readers are the torch dataloader workers (num_workers, from multicores in
+# .torch_predict_chunks); each prefetches 2 blocks, and the main process holds
+# the block in the GPU, so 2 x workers + 1 blocks share memsize.
 gpu_workers <- 8L
+blocks_in_ram <- 2L * gpu_workers + 1L
 # Smoothing and labeling run on CPU.
 cpu_workers <- 64L
 memsize <- 250 # GB of RAM, cgroup limit is 316
@@ -118,7 +121,7 @@ plan_blocks <- function(cube, model) {
     length(sits:::.ml_labels(model))
   # RAM per pixel of a block, as sits estimates it for GPU classification.
   ram_per_px <- npaths * 8 * sits:::.conf("processing_bloat_gpu")
-  rows <- floor((memsize / gpu_workers) * 1e9 / (size[["ncols"]] * ram_per_px))
+  rows <- floor((memsize / blocks_in_ram) * 1e9 / (size[["ncols"]] * ram_per_px))
   rows <- min(rows, size[["nrows"]])
   rows <- max(file_block[["nrows"]], floor(rows / file_block[["nrows"]]) * file_block[["nrows"]])
   block_px <- rows * size[["ncols"]]
@@ -130,8 +133,8 @@ plan_blocks <- function(cube, model) {
       ", npaths ", npaths, ", RAM per px ", ram_per_px, " B")
   say("plan: block ", rows, " x ", size[["ncols"]], " = ", block_px, " px, ",
       ceiling(size[["nrows"]] / rows), " per tile, ",
-      sprintf("%.1f GB RAM per block (%.1f GB x %d readers)",
-              block_px * ram_per_px / 1e9, block_px * ram_per_px / 1e9, gpu_workers))
+      sprintf("%.1f GB RAM per block, %.1f GB for %d blocks in RAM",
+              block_px * ram_per_px / 1e9, block_px * ram_per_px * blocks_in_ram / 1e9, blocks_in_ram))
   say("plan: max batch ", max_batch, " px, ", n, " batch(es) of ", batch, " px, ",
       sprintf("%.1f GB GPU per batch (estimate)", batch * gpu_bytes_per_pixel / 1e9))
   list(block_size = c(nrows = as.integer(rows), ncols = as.integer(size[["ncols"]])),
