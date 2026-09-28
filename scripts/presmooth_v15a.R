@@ -7,8 +7,8 @@
 # main run skips the tiles done here.
 #
 # A tile is taken when its probs file is complete (its "Tile 'X' finished"
-# line is in the log) and it is not the last tile of the chunk: the main run
-# starts smoothing right after that tile, and both would write the same file.
+# line is in the log) and the last tile of the chunk has not finished: after
+# it, the main run smooths the chunk, and both would write the same file.
 # Processes the eligible tiles once and exits.
 #
 # Usage: Rscript scripts/presmooth_v15a.R QML [MAX_TILES]
@@ -50,8 +50,9 @@ finished <- sub("^Tile '([0-9]+)' finished.*", "\\1", grep("^Tile '[0-9]+' finis
 tile_file <- function(tile, band) {
   file.path(output_dir, sprintf("LANDSAT_OLI_%s_2017-01-01_2018-12-01_%s_%s.tif", tile, band, version))
 }
+if (tail(chunk, 1) %in% finished) quit(save = "no")
 todo <- Filter(function(t) {
-  t %in% finished && t != tail(chunk, 1) &&
+  t %in% finished &&
     file.exists(tile_file(t, "probs")) && !file.exists(tile_file(t, "class"))
 }, chunk)
 todo <- head(todo, max_tiles)
