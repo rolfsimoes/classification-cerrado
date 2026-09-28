@@ -6,7 +6,8 @@
 # order of sits_labels(model), and the QML must follow that order.
 #
 # Usage: Rscript scripts/preview_class.R QML VERSION DATA_DIR OUT_DIR
-# Plots every class tile of VERSION found in DATA_DIR.
+# Plots every class tile of VERSION found in DATA_DIR. A tile whose PNG is
+# newer than its class file is skipped, so a rerun plots only new tiles.
 suppressPackageStartupMessages(library(sits))
 
 WIDTH <- 940L
@@ -40,12 +41,15 @@ cube <- sits_cube(
   progress   = FALSE
 )
 
-for (tile in cube[["tile"]]) {
+for (i in seq_len(nrow(cube))) {
+  tile <- cube[["tile"]][[i]]
+  tif <- cube[["file_info"]][[i]][["path"]][[1]]
+  png_file <- file.path(out_dir, paste0(tile, "_class_", version, ".png"))
+  if (file.exists(png_file) && file.mtime(png_file) >= file.mtime(tif)) next
   t0 <- Sys.time()
   p <- plot(cube, tile = tile, legend = setNames(pal$color, pal$label),
             max_cog_size = HEIGHT, legend_position = "outside") +
     tmap::tm_title(paste(tile, version))
-  png_file <- file.path(out_dir, paste0(tile, "_class_", version, ".png"))
   tmap::tmap_save(p, png_file, width = WIDTH, height = HEIGHT, units = "px", dpi = DPI)
   message(sprintf("%s: %.1f s", basename(png_file),
                   as.numeric(difftime(Sys.time(), t0, units = "secs"))))
