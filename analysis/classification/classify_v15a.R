@@ -121,23 +121,34 @@ plan_blocks <- function(cube, model) {
     length(sits:::.ml_labels(model))
   # RAM per pixel of a block, as sits estimates it for GPU classification.
   ram_per_px <- npaths * 8 * sits:::.conf("processing_bloat_gpu")
-  rows <- floor((memsize / blocks_in_ram) * 1e9 / (size[["ncols"]] * ram_per_px))
-  rows <- min(rows, size[["nrows"]])
-  rows <- max(file_block[["nrows"]], floor(rows / file_block[["nrows"]]) * file_block[["nrows"]])
-  block_px <- rows * size[["ncols"]]
+  # Largest block one of the blocks_in_ram may take.
+  cap_px <- floor((memsize / blocks_in_ram) * 1e9 / ram_per_px)
+  if (cap_px >= file_block[["nrows"]] * size[["ncols"]]) {
+    # Full-width stripes, in whole file blocks of rows.
+    cols <- size[["ncols"]]
+    rows <- min(size[["nrows"]], floor(cap_px / cols / file_block[["nrows"]]) * file_block[["nrows"]])
+  } else {
+    # One file block of rows does not fit at full width: narrow the block
+    # in whole file blocks of columns. (2026-09-28: 512 x 7040 blocks,
+    # 17 in RAM, needed 738 GB and the dataloader workers were killed.)
+    rows <- file_block[["nrows"]]
+    cols <- max(file_block[["ncols"]],
+                floor(cap_px / rows / file_block[["ncols"]]) * file_block[["ncols"]])
+  }
+  block_px <- rows * cols
   max_batch <- floor(gpu_memory * 1e9 / gpu_bytes_per_pixel)
   n <- ceiling(block_px / max_batch)
   batch <- as.integer(ceiling(block_px / n))
   say("plan: tile ", size[["nrows"]], " x ", size[["ncols"]],
       ", file block ", file_block[["nrows"]], " x ", file_block[["ncols"]],
       ", npaths ", npaths, ", RAM per px ", ram_per_px, " B")
-  say("plan: block ", rows, " x ", size[["ncols"]], " = ", block_px, " px, ",
-      ceiling(size[["nrows"]] / rows), " per tile, ",
+  say("plan: block ", rows, " x ", cols, " = ", block_px, " px, ",
+      ceiling(size[["nrows"]] / rows) * ceiling(size[["ncols"]] / cols), " per tile, ",
       sprintf("%.1f GB RAM per block, %.1f GB for %d blocks in RAM",
               block_px * ram_per_px / 1e9, block_px * ram_per_px * blocks_in_ram / 1e9, blocks_in_ram))
   say("plan: max batch ", max_batch, " px, ", n, " batch(es) of ", batch, " px, ",
       sprintf("%.1f GB GPU per batch (estimate)", batch * gpu_bytes_per_pixel / 1e9))
-  list(block_size = c(nrows = as.integer(rows), ncols = as.integer(size[["ncols"]])),
+  list(block_size = c(nrows = as.integer(rows), ncols = as.integer(cols)),
        batch_size = batch)
 }
 
