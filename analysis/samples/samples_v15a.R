@@ -3,6 +3,37 @@ set.seed(777)
 library(glue)
 library(sits)
 
+# fast_cube: a sits local cube that opens one file per tile. All bands and
+# dates of a BDC tile share one grid, so the others reuse its geometry.
+fast_cube <- function(data_dir, tiles, bands, multicores = 2L) {
+    files <- list.files(data_dir, pattern = "^LANDSAT_OLI_.*\\.tif$")
+    parts <- do.call(rbind, strsplit(sub("\\.tif$", "", files), "_"))
+    idx <- data.frame(
+        tile = parts[, 3], band = parts[, 4], date = as.Date(parts[, 5]),
+        path = file.path(normalizePath(data_dir), files), stringsAsFactors = FALSE
+    )
+    idx <- idx[idx$tile %in% tiles & idx$band %in% bands, ]
+    first <- min(idx$date)
+    # sits opens only these: one band, first date, every tile.
+    cube <- sits_cube(
+        source = "BDC", collection = "LANDSAT-OLI-16D", data_dir = data_dir,
+        tiles = tiles, bands = bands[[1]], start_date = first, end_date = first,
+        multicores = multicores, progress = FALSE
+    )
+    cube$file_info <- lapply(seq_len(nrow(cube)), function(i) {
+        ref <- cube$file_info[[i]][1, ]
+        rows <- idx[idx$tile == cube$tile[[i]], ]
+        rows <- rows[order(rows$date, rows$band), ]
+        fi <- ref[rep(1L, nrow(rows)), ]
+        fi$band <- rows$band
+        fi$date <- rows$date
+        fi$path <- rows$path
+        fi$fid <- as.character(match(rows$date, sort(unique(rows$date))))
+        fi
+    })
+    cube
+}
+
 #
 # Tiles of Cerrado
 #
@@ -64,23 +95,12 @@ for (year in years) {
   }
 
   message(format(Sys.time(), "%H:%M:%S"), " - ", year, ": loading cube")
-  cube_y1 <- sits_cube(
-    source     = "BDC",
-    collection = "LANDSAT-OLI-16D",
-    tiles      = cerrado_tiles,
-    data_dir   = file.path(cubes_dir, as.character(year - 1)),
-    # sits reads the file metadata with 2 workers unless told otherwise.
-    multicores = multicores,
-    progress   = FALSE
-  )
-  cube_y2 <- sits_cube(
-    source     = "BDC",
-    collection = "LANDSAT-OLI-16D",
-    tiles      = cerrado_tiles,
-    data_dir   = file.path(cubes_dir, as.character(year)),
-    multicores = multicores,
-    progress   = FALSE
-  )
+  # sits_cube opens all 9 360 files of a year on BeeGFS (19.5 min for 2018);
+  # fast_cube opens one per tile and gives the same cube.
+  cube_y1 <- fast_cube(file.path(cubes_dir, as.character(year - 1)),
+                       tiles = cerrado_tiles, bands = bands, multicores = multicores)
+  cube_y2 <- fast_cube(file.path(cubes_dir, as.character(year)),
+                       tiles = cerrado_tiles, bands = bands, multicores = multicores)
   cube_2y <- sits_merge(cube_y1, cube_y2)
   message(format(Sys.time(), "%H:%M:%S"), " - ", year, ": cube loaded")
 
