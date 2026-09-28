@@ -3,7 +3,9 @@
 # one key=value per line, for a watcher that compares two calls.
 #
 # Reads only: the run's pid file and log, the classification output_dir,
-# nvidia-smi queries, ps, /sys/fs/cgroup/memory.current.
+# nvidia-smi queries, ps, /sys/fs/cgroup/memory.current, run/memstat_v15a.txt.
+# Errors are counted from the last start_classify line of the log, so a
+# previous run in the same log does not count.
 #
 # Usage: scripts/status_v15a.sh
 set -uo pipefail
@@ -22,9 +24,11 @@ else
 fi
 if [ -f "$LOG" ]; then
     echo "log_age_min=$(( ($(date +%s) - $(stat -c %Y "$LOG")) / 60 ))"
-    echo "errors=$(grep -ciE 'error|killed|out of memory' "$LOG")"
+    from=$(grep -n 'start_classify:' "$LOG" | tail -n 1 | cut -d: -f1)
+    this_run() { tail -n "+${from:-1}" "$LOG"; }
+    echo "errors=$(this_run | grep -ciE 'error|killed|out of memory')"
     echo "last=$(grep ' | ' "$LOG" | tail -n 1 | cut -c1-160)"
-    grep -iE 'error|killed|out of memory' "$LOG" | tail -n 2 | cut -c1-160 | sed 's/^/last_error=/'
+    this_run | grep -iE 'error|killed|out of memory' | tail -n 2 | cut -c1-160 | sed 's/^/last_error=/'
 else
     echo "log=missing"
 fi
@@ -33,7 +37,16 @@ for band in probs bayes class; do
     n=$(ls "$OUT" 2>/dev/null | grep -E "_${band}_.*\.tif$" | cut -d_ -f3 | sort -u | wc -l)
     echo "tiles_${band}=$n/$TILES"
 done
+# Mean time per tile over the whole run, so smoothing and labeling of
+# finished chunks count; the mosaic is not in the forecast.
+probs=$(ls "$OUT" 2>/dev/null | grep -E "_probs_.*\.tif$" | cut -d_ -f3 | sort -u | wc -l)
+if [ -f "$PIDFILE" ] && [ "$probs" -gt 0 ] && kill -0 "-$(cat "$PIDFILE")" 2>/dev/null; then
+    el=$(ps -o etimes= -p "$(cat "$PIDFILE")" | tr -d ' ')
+    awk -v el="$el" -v n="$probs" 'BEGIN { printf "min_per_tile=%.1f\n", el / n / 60 }'
+    echo "eta_probs_utc=$(date -u -d "@$(( $(date +%s) + (TILES - probs) * el / probs ))" '+%Y-%m-%d %H:%M')"
+fi
 echo "mosaic=$(ls "$OUT/mosaic" 2>/dev/null | grep -c '\.tif$')"
 echo "gpu=$(nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader 2>/dev/null)"
 echo "cgroup_mem_gb=$(awk '{printf "%.1f", $1 / 1e9}' /sys/fs/cgroup/memory.current 2>/dev/null)"
 echo "r_procs=$(ps -eo stat,comm | awk '$2 == "R" {n++; if ($1 ~ /D/) d++} END {print n + 0 " (" d + 0 " on I/O)"}')"
+[ -f "$HERE/run/memstat_v15a.txt" ] && cat "$HERE/run/memstat_v15a.txt"
