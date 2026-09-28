@@ -4,9 +4,9 @@
 #
 # RAM is `anon` of the cgroup memory.stat: memory.current also counts page
 # cache, which the kernel reclaims before it kills a process.
-# Read rate is the sum of `rchar` of /proc/<pid>/io over the classification
-# group, per second between two samples; `read_bytes` misses network file
-# systems such as BeeGFS, and `rchar` also counts page cache hits.
+# Read rate is the sum of `rchar` of /proc/<pid>/io over the process tree of
+# the classification, per second between two samples; `read_bytes` misses
+# network file systems such as BeeGFS, and `rchar` also counts page cache hits.
 # Exits when the classification group in run/classify_v15a.pid ends.
 # Reads only: memory.stat, /proc/<pid>/io, nvidia-smi queries, the pid file.
 #
@@ -26,16 +26,24 @@ STAT=${V15A_CGROUP_STAT:-/sys/fs/cgroup/memory.stat}
 
 alive() { [ -f "$PIDFILE" ] && kill -0 "-$(cat "$PIDFILE")" 2>/dev/null; }
 
-# Sets DELTA to the bytes read by the group since the previous call; called
+# Sets DELTA to the bytes read by the tree since the previous call; called
 # without $( ), so that `seen` survives. A pid first seen counts in full,
 # since it started after the previous call; on the first call nothing counts.
-# Workers of the torch dataloader live one tile, so pids change.
+# Workers of the torch dataloader live one tile, so pids change. They run in
+# their own sessions (callr), so the tree is used, not the process group.
+tree_pids() {
+    ps -eo pid=,ppid= | awk -v root="$1" '
+        { kids[$2] = kids[$2] " " $1 }
+        END { q[1] = root; n = 1
+              for (i = 1; i <= n; i++) { print q[i]; m = split(kids[q[i]], k, " ")
+                                         for (j = 1; j <= m; j++) q[++n] = k[j] } }'
+}
 declare -A seen=()
 first=1
 read_delta() {
     local pid now sum=0
     declare -A cur=()
-    for pid in $(ps -o pid= -g "$(cat "$PIDFILE")"); do
+    for pid in $(tree_pids "$(cat "$PIDFILE")"); do
         now=$(awk '$1 == "rchar:" {print $2}' "/proc/$pid/io" 2>/dev/null) || continue
         [ -n "$now" ] || continue
         cur[$pid]=$now
