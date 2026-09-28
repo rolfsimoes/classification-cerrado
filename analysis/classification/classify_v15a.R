@@ -3,6 +3,13 @@ set.seed(777)
 library(glue)
 library(sits)
 
+# Cubes are flat dirs of thousands of files on BeeGFS; without this, each
+# GDAL open lists the dir and extraction runs 6x slower (2026-09-27).
+if (!nzchar(Sys.getenv("GDAL_DISABLE_READDIR_ON_OPEN"))) {
+    Sys.setenv(GDAL_DISABLE_READDIR_ON_OPEN = "EMPTY_DIR")
+}
+
+
 print(packageDescription("sits"))
 
 source(normalizePath("~/r+/lulcbr-publish.R"))

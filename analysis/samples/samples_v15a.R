@@ -3,6 +3,13 @@ set.seed(777)
 library(glue)
 library(sits)
 
+# Cubes are flat dirs of thousands of files on BeeGFS; without this, each
+# GDAL open lists the dir and extraction runs 6x slower (2026-09-27).
+if (!nzchar(Sys.getenv("GDAL_DISABLE_READDIR_ON_OPEN"))) {
+    Sys.setenv(GDAL_DISABLE_READDIR_ON_OPEN = "EMPTY_DIR")
+}
+
+
 # fast_cube: a sits local cube that opens one file per tile. All bands and
 # dates of a BDC tile share one grid, so the others reuse its geometry.
 fast_cube <- function(data_dir, tiles, bands, multicores = 2L) {
