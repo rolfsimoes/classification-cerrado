@@ -79,6 +79,11 @@ multicores <- as.integer(Sys.getenv("V15A_MULTICORES", "16"))
 # sits writes a debug log per call; keep it on local disk, not on BeeGFS.
 log_dir <- Sys.getenv("V15A_LOG_DIR", "/tmp/sits_v15a")
 dir.create(log_dir, recursive = TRUE, showWarnings = FALSE)
+# sits_get_data saves one .rds per tile and band here and reuses it, so a
+# restarted run resumes. Set before sits_parallel: workers copy SITS_ vars.
+cache_dir <- Sys.getenv("SITS_SAMPLES_CACHE_DIR", "/tmp/sits_v15a_cache")
+dir.create(cache_dir, recursive = TRUE, showWarnings = FALSE)
+Sys.setenv(SITS_SAMPLES_CACHE_DIR = cache_dir)
 sits_parallel(workers = multicores, log = TRUE, output_dir = log_dir)
 
 points <- read.csv(pasture_csv)
@@ -108,25 +113,27 @@ for (year in years) {
   timeline <- sits_timeline(cube_2y)
   stopifnot(length(timeline) == 24, all(bands %in% sits_bands(cube_2y)))
 
-  message("- ", year, ": extract ts")
-  year_ts <- list()
-  for (stratum in c("interior", "border", "transition")) {
-    s <- tibble::as_tibble(points[points$year == year & points$stratum == stratum, ])
-    s <- s[, c("longitude", "latitude", "label")]
-    s$start_date <- min(timeline)
-    s$end_date <- max(timeline)
-    ts <- sits_get_data(
-      cube = cube_2y,
-      samples = s,
-      bands = bands,
-      multicores = multicores
-    )
-    # Added after extraction, so the column is not lost inside sits_get_data.
-    ts$stratum <- stratum
-    message(format(Sys.time(), "%H:%M:%S"), "   ", stratum, ": ", nrow(s), " points, ", nrow(ts), " series")
-    year_ts[[stratum]] <- ts
-  }
-  year_ts <- dplyr::bind_rows(year_ts)
+  # One call per year: sits splits it into tile x band tasks (78 x 10) and
+  # opens each file once. A call per stratum opened every file three times.
+  message(format(Sys.time(), "%H:%M:%S"), " - ", year, ": extract ts")
+  p <- points[points$year == year, ]
+  s <- tibble::as_tibble(p[, c("longitude", "latitude", "label")])
+  s$start_date <- min(timeline)
+  s$end_date <- max(timeline)
+  year_ts <- sits_get_data(
+    cube = cube_2y,
+    samples = s,
+    bands = bands,
+    multicores = multicores
+  )
+  # Stratum joined back by location: each point is a distinct pixel center.
+  key <- function(lon, lat) paste(round(lon, 7), round(lat, 7))
+  year_ts$stratum <- p$stratum[match(key(year_ts$longitude, year_ts$latitude),
+                                     key(p$longitude, p$latitude))]
+  stopifnot(nrow(year_ts) == nrow(p), !anyNA(year_ts$stratum))
+  message(format(Sys.time(), "%H:%M:%S"), " - ", year, ": ", nrow(p),
+          " points, ", nrow(year_ts), " series, by stratum: ",
+          paste(names(table(year_ts$stratum)), table(year_ts$stratum), collapse = ", "))
 
   # Written under a temporary name: a killed run leaves no file the
   # checkpoint above would accept.
