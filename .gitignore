@@ -24,5 +24,3 @@ data/derived/mosaics/
 *.swp
 *~
 
-# pid files of runs started by scripts/start_*.sh
-scripts/run/
